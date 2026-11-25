@@ -6,17 +6,26 @@
 body{margin:0;background:#f6e7c9;color:#2a2622;font-family:system-ui,sans-serif;padding:16px}
 main{max-width:600px;margin:0 auto}
 h1{font-size:24px;margin:0 0 4px}
+h2{font-size:18px;margin:24px 0 8px}
 p.s{margin:0 0 16px;color:#6b4f3a}
 .q{background:#fff8ea;border:2px solid #2a2622;border-radius:10px;padding:12px;margin-bottom:12px}
 .q label{display:flex;gap:10px;align-items:flex-start;min-height:44px;font-weight:600}
 .q input[type=checkbox]{width:24px;height:24px;flex:none}
 .q textarea{width:100%;min-height:60px;margin-top:6px;font:inherit;padding:8px;border:1px solid #6b4f3a;border-radius:6px;background:#fff}
 .done label span{text-decoration:line-through;opacity:.6}
+table{width:100%;border-collapse:collapse;background:#fff8ea;border:2px solid #2a2622}
+th,td{border:1px solid #6b4f3a;padding:6px;text-align:center}
+td select,td input[type=text]{font:inherit;width:100%;min-height:36px;min-width:0}
+td.g{font-weight:700;min-width:50px}
+#note{margin-top:8px;font-style:italic;color:#6b4f3a}
 </style></head><body>
 <script data-bean-store>(function(){if(typeof location!=='undefined'&&location&&location.protocol==='about:'&&typeof document!=='undefined'&&document.addEventListener){document.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a[href^="#"]');if(!a||a.target==='_blank')return;e.preventDefault();try{location.hash=a.getAttribute('href')}catch(x){}},true)}if(typeof window==='undefined')return;try{window.localStorage.getItem('x');return}catch(e){}var d=Object.assign({},window.__BEAN_SAVED||{});function post(){try{parent.postMessage({type:'bean-store',data:d},'*')}catch(e){}}var ls={getItem:function(k){return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null},setItem:function(k,v){d[k]=String(v);post()},removeItem:function(k){delete d[k];post()},clear:function(){d={};post()},key:function(i){return Object.keys(d)[i]||null}};Object.defineProperty(ls,'length',{get:function(){return Object.keys(d).length}});try{Object.defineProperty(window,'localStorage',{value:ls,configurable:true})}catch(e){}})();</script><main>
 <h1>Foot 5 questions</h1>
 <p class="s">DDR SuperNOVA, difficulty 5 charts. Things to find out. Answers go in the boxes.</p>
 <div id="list"></div>
+<h2>Crossover footing chart</h2>
+<table><thead><tr><th>#</th><th>Arrow</th><th>Foot</th><th>Guess?</th><th>Tick</th></tr></thead><tbody id="rows"></tbody></table>
+<p id="note"></p>
 </main>
 <script>
 var Q=["Which songs have a 5 on at least one difficulty?","Which 5s are the easiest to start on?","Which 5s have jumps, and how many in a row?","Which 5s have freeze arrows?","Are any of the 5s fast enough to need a different step pattern?","What does Eoiee play when he warms up?","Is there a 5 I can read from the arrows alone without knowing the song?"];
@@ -35,4 +44,63 @@ Q.forEach(function(t,i){
  a.oninput=function(){data["n"+i]=a.value;save()};
  d.appendChild(l);d.appendChild(a);list.appendChild(d);
 });
+
+/* footing chart rules: pure functions */
+function makeRules(broken){
+ return {
+  guessCell:function(r){
+   if(!broken && !r.foot) return "";
+   return r.guess ? "guess" : "";
+  },
+  noteText:function(rows){
+   var n=[];
+   rows.forEach(function(r,i){
+    var has=broken ? r.guess : (r.foot && r.guess);
+    if(has) n.push(i+1);
+   });
+   return n.length ? "Guesses: row"+(n.length>1?"s ":" ")+n.join(", ") : "No guesses.";
+  }
+ };
+}
+var R=makeRules(false);
+var known=[{arrow:"L",foot:"L",guess:false},{arrow:"R",foot:"",guess:true},{arrow:"U",foot:"R",guess:true},{arrow:"D",foot:"R",guess:true}];
+function runCases(rules){
+ return rules.guessCell(known[0])==="" && rules.guessCell(known[1])==="" &&
+  rules.guessCell(known[2])==="guess" && rules.noteText(known)==="Guesses: rows 3, 4" &&
+  rules.noteText([{arrow:"L",foot:"",guess:true}])==="No guesses.";
+}
+var footCheck={ok:false,twinRejected:false};
+try{
+ footCheck.ok=runCases(R);
+ footCheck.twinRejected=!runCases(makeRules(true));
+}catch(e){footCheck.error=String(e)}
+window.footCheck=footCheck;
+
+var rows=[];
+try{rows=JSON.parse(localStorage.getItem("foot5rows")||"null")||[]}catch(e){}
+if(!rows.length)rows=[{arrow:"L",foot:"L",guess:false},{arrow:"R",foot:"R",guess:false},{arrow:"U",foot:"",guess:false},{arrow:"L",foot:"",guess:false}];
+function saveRows(){try{localStorage.setItem("foot5rows",JSON.stringify(rows))}catch(e){}}
+var tb=document.getElementById("rows"),note=document.getElementById("note");
+function refresh(){
+ note.textContent=R.noteText(rows);
+ rows.forEach(function(r,i){tb.children[i].children[3].textContent=R.guessCell(r)});
+}
+rows.forEach(function(r,i){
+ var tr=document.createElement("tr");
+ var n=document.createElement("td");n.textContent=i+1;
+ var ta=document.createElement("td");var ai=document.createElement("input");ai.type="text";ai.value=r.arrow;ai.setAttribute("aria-label","Arrow "+(i+1));
+ ai.oninput=function(){r.arrow=ai.value;saveRows()};ta.appendChild(ai);
+ var tf=document.createElement("td");var sel=document.createElement("select");sel.setAttribute("aria-label","Foot "+(i+1));
+ [["","(blank)"],["L","Left"],["R","Right"]].forEach(function(o){var op=document.createElement("option");op.value=o[0];op.textContent=o[1];sel.appendChild(op)});
+ sel.value=r.foot;
+ var tg=document.createElement("td");tg.className="g";
+ var cb=document.createElement("input");cb.type="checkbox";cb.checked=r.guess;cb.setAttribute("aria-label","Guess "+(i+1));
+ sel.onchange=function(){r.foot=sel.value;saveRows();refresh()};
+ cb.onchange=function(){r.guess=cb.checked;saveRows();refresh()};
+ tf.appendChild(sel);
+ var tc=document.createElement("td");tc.appendChild(cb);
+ tr.appendChild(n);tr.appendChild(ta);tr.appendChild(tf);tr.appendChild(tg);tr.appendChild(tc);
+ tb.appendChild(tr);
+});
+refresh();
 </script></body></html>
