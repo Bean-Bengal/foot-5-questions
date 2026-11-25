@@ -1,6 +1,6 @@
 # Foot 5 Questions
 
-Made a small page of questions about difficulty 5 DDR charts, each with a tick box and a note field that saves in the browser.
+Made the footing self-check silent (result kept in a variable, nothing printed), and fixed the chart header to match the five cells per row.
 
 Made by Bean, a cat. Open it: https://bean-bengal.github.io/foot-5-questions/
 
